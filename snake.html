@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>challenge1</title>
+    <script
+        src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+        crossorigin="anonymous">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>  
+    <script src="dist/jquerySwipeHandler.js"></script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        body {
+            background-color: rgb(60, 60, 60);
+        }
+    </style>
+
+
+    <style>
+        #canvas {
+            display: block;
+            margin: 1px auto;
+            border: 1px solid #657;
+            position: relative;
+        }
+
+        .buttonContainer{
+            position: relative;
+            top: 50%;
+            left: 0%;
+            width: 100%;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function(){
+            
+            let canvas = $("#canvas")[0]
+            let ctx = canvas.getContext("2d")
+            let w = $("#canvas").width()
+            let h = $("#canvas").height()
+            let key_action = false
+            let speed = 200
+            let reset = true
+            let inplay = false
+            let nx, ny
+
+            $("#quiz").hide()
+            $("#answer").hide()
+        
+            let cw = 20;
+            let d, food, score, level
+            let best = 0
+
+            var snake_array
+        
+            function init(){                         
+                d = "right"
+                create_snake()
+                create_food()
+                
+                score = 0
+                level = 1
+
+                ctx.fillStyle = "white"
+                ctx.fillRect(0, 0, w, h)
+                ctx.strokeStyle = "black"
+                ctx.strokeRect(0, 0, w, h)
+
+                let score_text = "Score: " + score
+                let level_text = "Level: " + level
+                let best_text = "Best Score: " + best
+                ctx.fillStyle = "grey"
+                ctx.fillText(score_text, 5, h-5)
+                ctx.fillText(level_text, 60, h-5)
+                ctx.fillText(best_text, 110, h-5)
+
+            }
+
+            init()
+
+            function start(){
+                if(typeof game_loop != "undefined") clearInterval(game_loop)
+                game_loop = setInterval(paint, speed)
+            }
+            
+            function create_snake(){
+                let length = 4
+                snake_array = []
+                for(var i = length-1; i>=0; i--)
+                {
+                    snake_array.push({x: i, y:0})
+                }
+            }
+        
+            function create_food(){
+                let new_x = Math.round(Math.random()*(w-cw)/cw)
+                let new_y = Math.round(Math.random()*(h-cw)/cw)
+
+                let over = true
+                while (over){
+                    let over_check = false
+                    snake_array.forEach(element => {
+                        if (new_x == element.x && new_y == element.y){
+                            over_check = true
+                            new_x = Math.round(Math.random()*(w-cw)/cw)
+                            new_y = Math.round(Math.random()*(h-cw)/cw)
+                        }
+                    })
+                    if (over_check){
+                        over = true
+                    }else{
+                        over = false
+                    }
+                }
+                
+                
+                food = {
+                    x: new_x, 
+                    y: new_y, 
+                }
+            }
+        
+            function paint(){
+                ctx.fillStyle = "white"
+                ctx.fillRect(0, 0, w, h)
+                ctx.strokeStyle = "black"
+                ctx.strokeRect(0, 0, w, h)
+                
+                nx = snake_array[0].x
+                ny = snake_array[0].y
+                
+                if(d == "right") nx++
+                else if(d == "left") nx--
+                else if(d == "up") ny--
+                else if(d == "down") ny++
+                
+                if(nx <= -1 || nx >= w/cw || ny <= -1 || ny >= h/cw || check_collision(nx, ny, snake_array)){
+                    inplay = false
+                    reset = true
+                    $('#play').text("game over play again?")
+                    if(typeof game_loop != "undefined") clearInterval(game_loop)
+
+                    let score_text = "Score: " + score
+                    let level_text = "Level: " + level
+                    let best_text = "Best Score: " + best
+                    ctx.fillStyle = "grey"
+                    ctx.fillText(score_text, 5, h-5)
+                    ctx.fillText(level_text, 60, h-5)
+                    ctx.fillText(best_text, 110, h-5)
+
+                    if (best >= 10){
+                        $("#quiz").show()
+                        $("#answer").show() 
+                        $(window).scrollTop($('#answer').position().top)
+                    }
+
+                    $('#play').show()
+                    $('#play').text("game over play again?")
+                }
+                
+                if(nx == food.x && ny == food.y){
+                    var tail = {x: nx, y: ny}
+                    score++
+            
+                    create_food()
+                }else{
+                    var tail = snake_array.pop()
+                    tail.x = nx
+                    tail.y = ny
+                }
+                
+                snake_array.unshift(tail)
+                
+                for(let i = 0; i < snake_array.length; i++){
+                    let c = snake_array[i]
+                    
+                    paint_cell(c.x, c.y, "black")
+                }
+
+                if (best < score){
+                    best = score
+                }
+                
+                paint_cell(food.x, food.y, "red");
+                
+                let score_text = "Score: " + score
+                let level_text = "Level: " + level
+                let best_text = "Best Score: " + best
+                ctx.fillStyle = "grey"
+                ctx.fillText(score_text, 5, h-5)
+                ctx.fillText(level_text, 60, h-5)
+                ctx.fillText(best_text, 110, h-5)
+            }
+        
+            function paint_cell(x, y, color)
+            {
+                ctx.fillStyle = color
+                ctx.fillRect(x*cw, y*cw, cw, cw);
+                ctx.strokeStyle = "white";
+                ctx.strokeRect(x*cw, y*cw, cw, cw);
+            }
+        
+            function check_collision(x, y, array)
+            {
+                for(let i = 0; i < array.length; i++)
+                {
+                    if(array[i].x == x && array[i].y == y){
+                        return true
+                    }
+                }
+                return false
+            }
+            
+            $(document).keyup(function(e){  
+                var key = e.which
+                
+                if(key == "37" && d != "right"){
+                    d = "left"
+                }else if(key == "38" && d != "down"){
+                    d = "up"
+                }else if(key == "39" && d != "left"){
+                    d = "right"
+                }else if(key == "40" && d != "up"){
+                    d = "down"
+                }
+                if (inplay){
+                    paint()
+                    if(nx == food.x && ny == food.y){
+                        var tail = {x: nx, y: ny}
+                        score++
+                        create_food()
+                    }
+                }
+
+                if (key==32){
+                    if (!($("#play").is(":visible")) && inplay){
+                        if(typeof game_loop != "undefined") clearInterval(game_loop);
+                        inplay = false
+                        reset = false
+                        $('#play').text("resume?")
+                        $('#play').show()
+                    }else{
+                        if (reset){
+                            $('#play').hide()
+                            if (reset){
+                                init()
+                                start()
+                                inplay = true
+                            }   
+                        }else if ($("#play").is(":visible")){
+                            inplay = true
+                            game_loop = setInterval(paint, speed)
+                            $('#play').hide()
+                        }
+                    }
+                }
+            })
+    
+            $('#play').on('click', function () {
+                $('#play').hide()
+                $(window).scrollTop($('#canvas').position().top)
+                if (reset){
+                    init()
+                    start()
+                    inplay = true
+                }
+            });
+
+            jquerySwipeHandler.handleSwipe("#canvas", [
+                jquerySwipeHandler.SWIPE_LEFT,
+                jquerySwipeHandler.SWIPE_RIGHT,
+                jquerySwipeHandler.SWIPE_DOWN,
+                jquerySwipeHandler.SWIPE_UP,
+                jquerySwipeHandler.CLICK
+                ],function (direction) {
+                    if(direction == "SWIPE_LEFT" && d != "right") d = "left"
+                    else if(direction == "SWIPE_UP" && d != "down") d = "up"
+                    else if(direction == "SWIPE_RIGHT" && d != "left") d = "right"
+                    else if(direction == "SWIPE_DOWN" && d != "up") d = "down"
+            })
+
+            $('#up').on('click', function () {
+                if(d != "down") d = "up"
+            })
+            $('#down').on('click', function () {
+                if(d != "up") d = "down"
+            })
+            $('#left').on('click', function () {
+                if(d != "right") d = "left"
+            })
+            $('#right').on('click', function () {
+                if(d != "left") d = "right"
+            })
+
+        })
+    </script>
+</head>
+<body>  
+    <div class="container d-grid gap-3">
+        <div class="row">
+            <div class="col-12 col-sm-6 offset-sm-3 align-self-center" >
+                <canvas id="canvas" width="260" height="400" style="z-index:1"></canvas> 
+                <button id="play" type="button" width="260" class="px-5 btn btn-warning"  style="z-index:2; position:absolute; top:200px; left:50%; transform: translate(-50%, -50%);">play</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-sm-6 offset-sm-3 align-self-center text-center">
+                <button id="up" type="button" class="px-5 btn btn-light">Up</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-sm-6 offset-sm-3 align-self-center text-center">
+                <button id="left" type="button" class="px-5 btn btn-light">Left</button>
+                <button id="right" type="button" class="px-5 btn btn-light">Right</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-sm-6 offset-sm-3 align-self-center text-center">
+                <button id="down" type="button" class="px-5 btn btn-light">Down</button>
+            </div>
+        </div>
+    </div> 
+</body>
+</html>
